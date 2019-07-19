@@ -15,7 +15,7 @@ class Trainer:
     def __init__(self, args, config, model, train_iter, val_iter, test_iter, arpa_converter):
         self.args = args
         self.config = config
-        self.model = model
+        self._model = model
         self.train_iter = train_iter
         self.val_iter = val_iter
         self.test_iter = test_iter
@@ -23,9 +23,21 @@ class Trainer:
         self.optimizer = self._get_optimizer()
         self.arpa_converter = arpa_converter
 
+    @property
+    def model(self):
+        return self._model
+
+    @model.setter
+    def model(self, m):
+        self._model = m
+
+    @model.deleter
+    def model(self):
+        del self._model
+
     def _get_optimizer(self):
         if self.config['optimizer']['name'] == 'adam':
-            return optim.Adam(self.model.parameters(), lr=self.config['optimizer']['lr'],
+            return optim.Adam(self._model.parameters(), lr=self.config['optimizer']['lr'],
                               betas=(0.0, 0.999), eps=1e-8,
                               weight_decay=12e-7, amsgrad=True)
         else:
@@ -39,7 +51,7 @@ class Trainer:
         return data, targets, sorted_pad_lengths
 
     def _train_epoch(self, epoch):
-        self.model.train()
+        self._model.train()
         total_loss = 0.
         total_num_examples = 0
         start_time = time.time()
@@ -53,13 +65,13 @@ class Trainer:
             data, targets, pad_lengths = batch[0], batch[1], batch[2]
             data, targets, pad_lengths = self._sort_by_lengths(data, targets, pad_lengths)
 
-            self.model.zero_grad()
-            output = self.model(data, pad_lengths)
+            self._model.zero_grad()
+            output = self._model(data, pad_lengths)
             loss = torch.nn.NLLLoss(ignore_index=0, reduction='sum')(output.view(-1, self.args.vocab_size),
                                                                      targets.view(-1))
             loss.backward()
 
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config['grad_clip'])
+            torch.nn.utils.clip_grad_norm_(self._model.parameters(), self.config['grad_clip'])
             self.optimizer.step()
 
             total_loss += loss.item()
@@ -84,7 +96,7 @@ class Trainer:
                 start_time = time.time()
 
     def _evaluate(self, data_iterator):
-        self.model.eval()
+        self._model.eval()
         total_loss = 0.
         word_count = 0
 
@@ -92,13 +104,13 @@ class Trainer:
             for _, batch in enumerate(tqdm(data_iterator)):
                 data, targets, pad_lengths = batch[0], batch[1], batch[2]
                 data, targets, pad_lengths = self._sort_by_lengths(data, targets, pad_lengths)
-                output = self.model(data, pad_lengths)
+                output = self._model(data, pad_lengths)
                 output_flat = output.view(-1, self.args.vocab_size)
                 total_loss += torch.nn.NLLLoss(ignore_index=0, reduction='sum')(output_flat,
                                                                                 targets.view(-1)).item()
                 word_count += len(data.nonzero())
 
-        self.model.train()
+        self._model.train()
         return total_loss / word_count
 
     @staticmethod
@@ -147,9 +159,8 @@ class Trainer:
                     os.makedirs(self.args.save_dir)
 
                 with open('{}/{}.pt'.format(self.args.save_dir, self.args.file_name), 'wb') as f:
-                    torch.save(self.model.state_dict(), f)
+                    torch.save(self._model.state_dict(), f)
 
-                self.convert_to_arpa()
                 best_val_loss = val_loss
 
     def _batch_label_probs(self, targets, output):
@@ -175,7 +186,7 @@ class Trainer:
                 batch_data, batch_targets, batch_pad_lengths = batch[0], batch[1], batch[2]
                 batch_data, batch_targets, batch_pad_lengths = self._sort_by_lengths(batch_data, batch_targets,
                                                                                      batch_pad_lengths)
-                output = self.model(batch_data, batch_pad_lengths)
+                output = self._model(batch_data, batch_pad_lengths)
                 batch_label_probabilities = self._batch_label_probs(targets=batch_targets, output=output)
                 initial_label_probabilities = torch.cat([initial_label_probabilities, batch_label_probabilities],
                                                         dim=0)
@@ -205,6 +216,9 @@ class Trainer:
 
     def convert_to_arpa(self):
         logging.debug('Converting to Approximate 3Gram LM')
+        with open('{}/{}.pt'.format(self.args.save_dir, self.args.file_name), 'rb') as f:
+            self._model.load_state_dict(torch.load(f))
+        self._model.to(self.args.device)
         label_probabilities = self._get_label_probabilities()
         self.arpa_converter.convert_to_ngram(label_probabilities)
         self.arpa_converter.write_arpa_format(self.args.output_ngram_lm)

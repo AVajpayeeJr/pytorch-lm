@@ -64,6 +64,10 @@ def main():
                       train_iter=train_iter, val_iter=val_iter, test_iter=test_iter,
                       arpa_converter=arpa_converter)
     trainer.train()
+    del(trainer.model)
+    trainer.model = RNNLM(config=config['model'], vocab_size=args.vocab_size,
+                          attention=args.attention, tie_weights=args.tie_weights)
+    trainer.convert_to_arpa()
 
 
 if __name__ == '__main__':
