@@ -49,6 +49,7 @@ def main():
     logging.info('Valid Batches: {}'.format(len(val_iter)))
     logging.info('Test Batches: {}'.format(len(test_iter)))
 
+    args.device = DEVICE
     args.vocab_size = len(data_reader)
     args.save_dir = save_dir
     args.file_name = args.model_type + '_nnlm'

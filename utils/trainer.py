@@ -118,18 +118,24 @@ class Trainer:
             logging.debug('Epoch: {}\tEnd Time: {}\tTime to Train: {}sec'.format(epoch,
                                                                                  self._time_string(train_epoch_end_time),
                                                                                  round(train_epoch_time)))
+
+            logging.debug('Evaluating on Train')
+            train_loss = self._evaluate(self.train_iter)
+            train_ppl = min(math.exp(train_loss), 1000)
             logging.debug('Evaluating on Val')
             val_loss = self._evaluate(self.val_iter)
             val_ppl = min(math.exp(val_loss), 1000)
             logging.debug('Evaluating on Test')
             test_loss = self._evaluate(self.test_iter)
             test_ppl = min(math.exp(test_loss), 1000)
-            logging.info('Epoch: {}\tVal Loss: {}\tVal PPL: {}\tTest Loss: {}\tTest PPL: {}'.format(epoch,
-                                                                                                    round(val_loss, 3),
-                                                                                                    round(val_ppl, 3),
-                                                                                                    round(test_loss, 3),
-                                                                                                    round(test_ppl, 3)
-                                                                                                    ))
+            logging.info('Epoch: {}\tTrain Loss: {}\tTrain PPL: {}\tVal Loss: {}\tVal PPL: {}\tTest Loss: {}\tTest PPL: {}'.format(epoch,
+                                                                                                                                   round(train_loss, 3),
+                                                                                                                                   round(train_ppl, 3),
+                                                                                                                                   round(val_loss, 3),
+                                                                                                                                   round(val_ppl, 3),
+                                                                                                                                   round(test_loss, 3),
+                                                                                                                                   round(test_ppl, 3)
+                                                                                                                                   ))
             self.writer.add_scalar('lr', self.optimizer.param_groups[0]['lr'], epoch)
             self.writer.add_scalar('validation_loss_at_epoch', val_loss, epoch)
             self.writer.add_scalar('test_loss_at_epoch', test_loss, epoch)
@@ -146,37 +152,56 @@ class Trainer:
                 self.convert_to_arpa()
                 best_val_loss = val_loss
 
-    @staticmethod
-    def _batch_label_probs(targets, output):
-        y_pred = output.cpu().numpy()
-        y_true = targets.cpu().numpy()
-        label_probabilities = []
+    def _batch_label_probs(self, targets, output):
+        y_pred = output
+        y_true = targets
+        label_probabilities = torch.Tensor(targets.shape[0], targets.shape[1]).fill_(-1.).to(self.args.device)
         for sent_id, sent in enumerate(y_true):
-            sent_prob_list = []
             for word_pos, word_idx in enumerate(sent):
                 if word_idx == 0:
-                    # EOS
-                    label_probabilities.append(sent_prob_list.copy())
-                    break
+                    pass
                 else:
                     prob = np.exp(y_pred[sent_id][word_pos][word_idx])
-                    sent_prob_list.append((word_idx, prob))
-            sent_prob_list.clear()
+                    label_probabilities[sent_id][word_pos] = prob
         return label_probabilities
 
     def _get_label_probabilities(self):
         logging.debug('Getting label_probabilities')
-        label_probabilities = []
-        with torch.no_grad():
-            for batch in tqdm(self.train_iter):
-                data, targets, pad_lengths = batch[0], batch[1], batch[2]
-                data, targets, pad_lengths = self._sort_by_lengths(data, targets, pad_lengths)
-                output = self.model(data, pad_lengths)
-                batch_label_probabilities = self._batch_label_probs(targets=targets, output=output)
-                label_probabilities += batch_label_probabilities
 
-        logging.debug('Len label_probabilities: {}'.format(len(label_probabilities)))
-        return label_probabilities
+        with torch.no_grad():
+            initial_targets = torch.LongTensor().to(self.args.device)
+            initial_label_probabilities = torch.Tensor().to(self.args.device)
+            for batch in tqdm(self.train_iter):
+                batch_data, batch_targets, batch_pad_lengths = batch[0], batch[1], batch[2]
+                batch_data, batch_targets, batch_pad_lengths = self._sort_by_lengths(batch_data, batch_targets,
+                                                                                     batch_pad_lengths)
+                output = self.model(batch_data, batch_pad_lengths)
+                batch_label_probabilities = self._batch_label_probs(targets=batch_targets, output=output)
+                initial_label_probabilities = torch.cat([initial_label_probabilities, batch_label_probabilities],
+                                                        dim=0)
+                initial_targets = torch.cat([initial_targets, batch_targets], dim=0)
+            label_probabilities_np = initial_label_probabilities.cpu().numpy()
+            targets_np = initial_targets.cpu().numpy()
+            logging.debug('Label Probabilities Shape: {}'.format(label_probabilities_np.shape))
+            logging.debug('Label Probabilities Type: {}'.format(type(label_probabilities_np)))
+            logging.debug('Targets Shape: {}'.format(targets_np.shape))
+            logging.debug('Targets Type: {}'.format(type(targets_np)))
+
+        label_probabilities_list = []
+        for sent_id, sent in enumerate(targets_np):
+            sent_probs = []
+            for word_pos, word_idx in enumerate(sent):
+                if label_probabilities_np[sent_id][word_pos] == -1:
+                    assert word_idx == 0
+                else:
+                    assert word_idx != 0
+                    sent_probs.append((word_idx, label_probabilities_np[sent_id][word_pos]))
+            if sent_probs:
+                label_probabilities_list.append(sent_probs.copy())
+                sent_probs.clear()
+        logging.debug('Len Label Probabilities List: {}'.format(len(label_probabilities_list)))
+
+        return label_probabilities_list
 
     def convert_to_arpa(self):
         logging.debug('Converting to Approximate 3Gram LM')
