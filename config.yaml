@@ -21,6 +21,6 @@ training:
         name: adam
         lr: 0.001
     grad_clip: 5.0
-    epochs: 1
+    epochs: 10
     log_interval: 1
     batch_size: 32
