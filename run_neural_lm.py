@@ -58,7 +58,7 @@ def main():
 
     model = RNNLM(config=config['model'], vocab_size=args.vocab_size,
                   attention=args.attention, tie_weights=args.tie_weights)
-
+    model.to(DEVICE)
     trainer = Trainer(args=args, config=config['training'], model=model,
                       train_iter=train_iter, val_iter=val_iter, test_iter=test_iter,
                       arpa_converter=arpa_converter)

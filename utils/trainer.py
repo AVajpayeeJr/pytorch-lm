@@ -148,8 +148,8 @@ class Trainer:
 
     @staticmethod
     def _batch_label_probs(targets, output):
-        y_pred = output.numpy()
-        y_true = targets.numpy()
+        y_pred = output.cpu().numpy()
+        y_true = targets.cpu().numpy()
         label_probabilities = []
         for sent_id, sent in enumerate(y_true):
             sent_prob_list = []
