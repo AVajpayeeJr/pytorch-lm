@@ -47,7 +47,7 @@ class DatasetReader:
         valid_path = data_dir + '/valid.txt'
         test_path = data_dir + '/test.txt'
 
-        train_sentences = self._read_file(train_path)[:1000]
+        train_sentences = self._read_file(train_path)
         self._build_vocab(train_sentences)
         train_token_ids = self._sentences_to_token_ids(train_sentences)
 

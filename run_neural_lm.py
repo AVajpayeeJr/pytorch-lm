@@ -24,8 +24,14 @@ def main():
     parser.add_argument('--debug', action='store_true', default=True, help='Run with DEBUG logging level')
 
     args = parser.parse_args()
+    with open(args.config, 'r') as infile:
+        config = yaml.load(infile)
+
     save_dir = args.output_base_dir + '/' + args.language + \
-               '/neural/{}_attention={}_tie-weights={}'.format(args.model_type, args.attention, args.tie_weights)
+               '/neural/{}_{}_attention={}_tie-weights={}'.format(args.model_type,
+                                                                  config['model']['encoder']['type'],
+                                                                  args.attention,
+                                                                  args.tie_weights)
     if not args.input_ngram_lm:
         args.input_ngram_lm = args.output_base_dir + '/' + args.language + '/ngram/3gram_kn_interp.lm'
     if not args.output_ngram_lm:
@@ -33,9 +39,6 @@ def main():
 
     if args.debug:
         logging.basicConfig(format='%(levelname)s:%(funcName)s:%(lineno)s:\t%(message)s', level=logging.DEBUG)
-
-    with open(args.config, 'r') as infile:
-        config = yaml.load(infile)
 
     data_reader = DatasetReader()
     data_iters = data_reader.get_dataset(data_dir=args.language, max_seq_len=config['data']['max_sentence_len'],

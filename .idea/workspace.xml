@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="854f5559-5caa-4fde-a5e1-4d75d01a71bf" name="Default Changelist" comment="" />
+    <list default="true" id="854f5559-5caa-4fde-a5e1-4d75d01a71bf" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ori_cleaned_models/ori/neural/word_attention=False_tie-weights=False/ori_word_neural_arpa.lm" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ori_cleaned_models/ori/neural/word_attention=False_tie-weights=False/runs/word_nnlm/events.out.tfevents.1563499780.M-AI813014.fios-router.home" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ori_cleaned_models/ori/neural/word_attention=False_tie-weights=False/word_nnlm.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/run_neural_lm.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_neural_lm.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/data_reader.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/data_reader.py" afterDir="false" />
+    </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -13,8 +20,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/run_neural_lm.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="990">
-              <caret line="66" selection-start-line="66" selection-end-line="66" />
+            <state relative-caret-position="97">
+              <caret line="41" selection-start-line="41" selection-end-line="41" />
               <folding>
                 <element signature="e#0#15#0" expanded="true" />
               </folding>
@@ -25,7 +32,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/utils/trainer.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1365">
+            <state relative-caret-position="816">
               <caret line="91" column="57" selection-start-line="91" selection-start-column="57" selection-end-line="91" selection-end-column="57" />
               <folding>
                 <element signature="e#0#11#0" expanded="true" />
@@ -47,7 +54,7 @@
         <entry file="file://$PROJECT_DIR$/utils/data_reader.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="91">
-              <caret line="49" column="59" selection-start-line="49" selection-start-column="59" selection-end-line="49" selection-end-column="59" />
+              <caret line="49" column="53" lean-forward="true" selection-start-line="49" selection-start-column="53" selection-end-line="49" selection-end-column="53" />
             </state>
           </provider>
         </entry>
@@ -73,9 +80,10 @@
         <option value="$PROJECT_DIR$/lm_models/word.py" />
         <option value="$PROJECT_DIR$/lm_models/attention.py" />
         <option value="$PROJECT_DIR$/config.yaml" />
-        <option value="$PROJECT_DIR$/utils/data_reader.py" />
-        <option value="$PROJECT_DIR$/run_neural_lm.py" />
         <option value="$PROJECT_DIR$/utils/trainer.py" />
+        <option value="$PROJECT_DIR$/utils/data_reader.py" />
+        <option value="$PROJECT_DIR$/.gitignore" />
+        <option value="$PROJECT_DIR$/run_neural_lm.py" />
       </list>
     </option>
   </component>
@@ -99,6 +107,17 @@
             <path>
               <item name="pytorch-lm" type="b2602c69:ProjectViewProjectNode" />
               <item name="pytorch-lm" type="462c0819:PsiDirectoryNode" />
+              <item name="ori_cleaned_models" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="pytorch-lm" type="b2602c69:ProjectViewProjectNode" />
+              <item name="pytorch-lm" type="462c0819:PsiDirectoryNode" />
+              <item name="ori_cleaned_models" type="462c0819:PsiDirectoryNode" />
+              <item name="ori" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="pytorch-lm" type="b2602c69:ProjectViewProjectNode" />
+              <item name="pytorch-lm" type="462c0819:PsiDirectoryNode" />
               <item name="utils" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
@@ -109,6 +128,7 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
@@ -144,13 +164,14 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1680" height="1050" extended-state="0" />
+    <editor active="true" />
     <layout>
       <window_info id="Favorites" side_tool="true" />
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.24969475" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.24969475" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="bottom" id="Version Control" />
       <window_info anchor="bottom" id="Python Console" />
-      <window_info anchor="bottom" id="Terminal" weight="0.32959184" />
+      <window_info active="true" anchor="bottom" id="Terminal" visible="true" weight="0.32959184" />
       <window_info anchor="bottom" id="Event Log" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.32959184" />
@@ -221,28 +242,28 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/config.yaml">
+    <entry file="file://$PROJECT_DIR$/ori_cleaned_models/ori/neural/word_attention=False_tie-weights=False/ori_word_neural_arpa.lm">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="375">
-          <caret line="25" column="18" selection-start-line="25" selection-start-column="18" selection-end-line="25" selection-end-column="18" />
+        <state relative-caret-position="-232861" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.gitignore">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret column="5" selection-start-column="5" selection-end-column="5" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/utils/data_reader.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="91">
-          <caret line="49" column="59" selection-start-line="49" selection-start-column="59" selection-end-line="49" selection-end-column="59" />
+          <caret line="49" column="53" lean-forward="true" selection-start-line="49" selection-start-column="53" selection-end-line="49" selection-end-column="53" />
         </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/ori_cleaned_models/ori/neural/word_attention=False_tie-weights=False/ori_word_neural_arpa.lm">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-232861" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/utils/trainer.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1365">
+        <state relative-caret-position="816">
           <caret line="91" column="57" selection-start-line="91" selection-start-column="57" selection-end-line="91" selection-end-column="57" />
           <folding>
             <element signature="e#0#11#0" expanded="true" />
@@ -250,10 +271,17 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/config.yaml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="375">
+          <caret line="25" column="18" selection-start-line="25" selection-start-column="18" selection-end-line="25" selection-end-column="18" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/run_neural_lm.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="990">
-          <caret line="66" selection-start-line="66" selection-end-line="66" />
+        <state relative-caret-position="97">
+          <caret line="41" selection-start-line="41" selection-end-line="41" />
           <folding>
             <element signature="e#0#15#0" expanded="true" />
           </folding>
