@@ -161,7 +161,7 @@ class Trainer:
                 if word_idx == 0:
                     pass
                 else:
-                    prob = np.exp(y_pred[sent_id][word_pos][word_idx])
+                    prob = np.exp(y_pred[sent_id][word_pos][word_idx].item())
                     label_probabilities[sent_id][word_pos] = prob
         return label_probabilities
 
