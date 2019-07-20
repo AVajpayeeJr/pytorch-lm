@@ -1,4 +1,4 @@
-export BROWN_CLUSTERING=/home/ec2-user/brown-cluster-master
+export BROWN_CLUSTERING=~/brown-cluster-master
 alias wcluster="$BROWN_CLUSTERING/wcluster"
 export SRILM=/home/ec2-user/srilm-1.7.2
 export MACHINE_TYPE=i686-m64
