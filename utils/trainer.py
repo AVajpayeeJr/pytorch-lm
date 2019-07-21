@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class Trainer:
-    def __init__(self, args, config, model, train_iter, val_iter, test_iter, arpa_converter):
+    def __init__(self, args, config, model, train_iter, val_iter, test_iter):
         self.args = args
         self.config = config
         self._model = model
@@ -21,7 +21,6 @@ class Trainer:
         self.test_iter = test_iter
         self.writer = SummaryWriter(self.args.save_dir + '/runs/' + self.args.file_name)
         self.optimizer = self._get_optimizer()
-        self.arpa_converter = arpa_converter
 
     @property
     def model(self):
@@ -162,63 +161,3 @@ class Trainer:
                     torch.save(self._model.state_dict(), f)
 
                 best_val_loss = val_loss
-
-    def _batch_label_probs(self, targets, output):
-        y_pred = output
-        y_true = targets
-        label_probabilities = torch.Tensor(targets.shape[0], targets.shape[1]).fill_(-1.).to(self.args.device)
-        for sent_id, sent in enumerate(y_true):
-            for word_pos, word_idx in enumerate(sent):
-                if word_idx == 0:
-                    pass
-                else:
-                    prob = np.exp(y_pred[sent_id][word_pos][word_idx].item())
-                    label_probabilities[sent_id][word_pos] = prob
-        return label_probabilities
-
-    def _get_label_probabilities(self):
-        logging.debug('Getting label_probabilities')
-
-        with torch.no_grad():
-            initial_targets = torch.LongTensor().to(self.args.device)
-            initial_label_probabilities = torch.Tensor().to(self.args.device)
-            for batch in tqdm(self.train_iter):
-                batch_data, batch_targets, batch_pad_lengths = batch[0], batch[1], batch[2]
-                batch_data, batch_targets, batch_pad_lengths = self._sort_by_lengths(batch_data, batch_targets,
-                                                                                     batch_pad_lengths)
-                output = self._model(batch_data, batch_pad_lengths)
-                batch_label_probabilities = self._batch_label_probs(targets=batch_targets, output=output)
-                initial_label_probabilities = torch.cat([initial_label_probabilities, batch_label_probabilities],
-                                                        dim=0)
-                initial_targets = torch.cat([initial_targets, batch_targets], dim=0)
-            label_probabilities_np = initial_label_probabilities.cpu().numpy()
-            targets_np = initial_targets.cpu().numpy()
-            logging.debug('Label Probabilities Shape: {}'.format(label_probabilities_np.shape))
-            logging.debug('Label Probabilities Type: {}'.format(type(label_probabilities_np)))
-            logging.debug('Targets Shape: {}'.format(targets_np.shape))
-            logging.debug('Targets Type: {}'.format(type(targets_np)))
-
-        label_probabilities_list = []
-        for sent_id, sent in enumerate(targets_np):
-            sent_probs = []
-            for word_pos, word_idx in enumerate(sent):
-                if label_probabilities_np[sent_id][word_pos] == -1:
-                    assert word_idx == 0
-                else:
-                    assert word_idx != 0
-                    sent_probs.append((word_idx, label_probabilities_np[sent_id][word_pos]))
-            if sent_probs:
-                label_probabilities_list.append(sent_probs.copy())
-                sent_probs.clear()
-        logging.debug('Len Label Probabilities List: {}'.format(len(label_probabilities_list)))
-
-        return label_probabilities_list
-
-    def convert_to_arpa(self):
-        logging.debug('Converting to Approximate 3Gram LM')
-        with open('{}/{}.pt'.format(self.args.save_dir, self.args.file_name), 'rb') as f:
-            self._model.load_state_dict(torch.load(f))
-        self._model.to(self.args.device)
-        label_probabilities = self._get_label_probabilities()
-        self.arpa_converter.convert_to_ngram(label_probabilities)
-        self.arpa_converter.write_arpa_format(self.args.output_ngram_lm)

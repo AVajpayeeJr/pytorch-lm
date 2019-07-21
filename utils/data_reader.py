@@ -4,14 +4,16 @@ import torch
 from torch.utils.data import DataLoader, TensorDataset
 
 _PAD = '<PAD>'
-_EOS = '<eos>'
+_BOS = '<s>'
+_EOS = '</s>'
 _UNK = '<unk>'
 
 PAD_ID = 0
-EOS_ID = 1
-UNK_ID = 2
+BOS_ID = 1
+EOS_ID = 2
+UNK_ID = 3
 
-START_VOCAB = [_PAD, _EOS, _UNK]
+START_VOCAB = [_PAD, _BOS, _EOS, _UNK]
 
 
 class DatasetReader:
@@ -20,7 +22,7 @@ class DatasetReader:
         self._idx2tokens = dict(zip([i for i in range(len(START_VOCAB))], START_VOCAB))
 
     def _build_vocab(self, sentences):
-        idx_cnt = 3
+        idx_cnt = 4
         for sent in sentences:
             for word in sent:
                 if word in self._tokens2idx:
@@ -33,7 +35,7 @@ class DatasetReader:
     @staticmethod
     def _read_file(filename):
         with codecs.open(filename, 'r', encoding='utf-8') as infile:
-            sentences = [j.strip().split() + [_EOS] for j in infile.readlines() if j.strip()]
+            sentences = [[_BOS] + j.strip().split() + [_EOS] for j in infile.readlines() if j.strip()]
         return sentences
 
     def _sentences_to_token_ids(self, sentences):

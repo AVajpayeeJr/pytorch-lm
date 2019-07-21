@@ -14,29 +14,22 @@ SEED = 123
 def main():
     parser = argparse.ArgumentParser(description='PyTorch RNN Language Modeling')
     parser.add_argument('--output_base_dir', help='Path to output base directory')
-    parser.add_argument('--language', help='Language code')
+    parser.add_argument('--input_base_dir', help='Path to input directory')
     parser.add_argument('--config', help='Path to YAML Config file')
     parser.add_argument('--model_type', help='word')
     parser.add_argument('--attention', action='store_true', default=False)
     parser.add_argument('--tie_weights', action='store_true', default=False)
-    parser.add_argument('--input_ngram_lm', default=None, help='Input NGram LM file to use as base for approximating.')
-    parser.add_argument('--output_ngram_lm', default=None, help='Output NGram LM file to write (SRILM Format)')
     parser.add_argument('--debug', action='store_true', default=True, help='Run with DEBUG logging level')
 
     args = parser.parse_args()
     with open(args.config, 'r') as infile:
         config = yaml.load(infile)
 
-    save_dir = args.output_base_dir + '/' + args.language + \
+    save_dir = args.output_base_dir + '/' + \
                '/neural/{}_{}_attention={}_tie-weights={}'.format(args.model_type,
                                                                   config['model']['encoder']['type'],
                                                                   args.attention,
                                                                   args.tie_weights)
-    if not args.input_ngram_lm:
-        args.input_ngram_lm = args.output_base_dir + '/' + args.language + '/ngram/3gram_kn_interp.lm'
-    if not args.output_ngram_lm:
-        args.output_ngram_lm = save_dir + '/' + args.language + '_' + args.model_type + '_' + 'neural_arpa.lm'
-
     if args.debug:
         logging.basicConfig(format='%(levelname)s:%(funcName)s:%(lineno)s:\t%(message)s', level=logging.DEBUG)
 
@@ -54,20 +47,13 @@ def main():
     args.save_dir = save_dir
     args.file_name = args.model_type + '_nnlm'
 
-    arpa_converter = ARPAConverter(word2idx=data_reader.vocab)
-    arpa_converter.read_lm(args.input_ngram_lm)
-
     model = RNNLM(config=config['model'], vocab_size=args.vocab_size,
                   attention=args.attention, tie_weights=args.tie_weights)
     model.to(DEVICE)
     trainer = Trainer(args=args, config=config['training'], model=model,
-                      train_iter=train_iter, val_iter=val_iter, test_iter=test_iter,
-                      arpa_converter=arpa_converter)
+                      train_iter=train_iter, val_iter=val_iter, test_iter=test_iter)
     trainer.train()
     del(trainer.model)
-    trainer.model = RNNLM(config=config['model'], vocab_size=args.vocab_size,
-                          attention=args.attention, tie_weights=args.tie_weights)
-    trainer.convert_to_arpa()
 
 
 if __name__ == '__main__':

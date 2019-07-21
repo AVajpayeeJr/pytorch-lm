@@ -1,10 +1,14 @@
 import codecs
-from collections import defaultdict
-from math import log
+from collections import defaultdict, namedtuple
+import torch
+from tqdm import tqdm
+from utils.data_reader import PAD_ID, BOS_ID, EOS_ID
 
 
 class ARPAConverter:
-    def __init__(self, word2idx):
+    def __init__(self, word2idx, model, rnn_ngram_context=3, top_ngrams={2: 2000000, 3: 300000}):
+        self._model = model
+
         self._word2idx = word2idx
         self._idx2word = {v:k for k,v in self._word2idx.items()}
 
@@ -14,18 +18,20 @@ class ARPAConverter:
         self._avg_unigram_backoff = 0
         self._avg_bigram_backoff = 0
 
-        self._unigrams = defaultdict(lambda: [0, 0])
-        self._bigrams = defaultdict(lambda: [0, 0])
-        self._trigrams = defaultdict(lambda: [0, 0])
+        self._rnn_ngram_context = rnn_ngram_context
+        self._rnn_ngrams = {}
+        for n in range(2, rnn_ngram_context+1):
+            self._rnn_ngrams[n] = defaultdict(lambda: [0, 0])
 
-        self._bigrams_list = defaultdict(lambda: set())
-        self._trigrams_list = defaultdict(lambda: set())
+        self._rnn_history = {}
+        for n in range(2, rnn_ngram_context+1):
+            self._rnn_ngrams[n] = defaultdict(set)
 
     def read_lm(self, lm_file):
         marker = 'start'
 
         unigram_cnt, bigram_cnt = 0, 0
-
+        dict_val = namedtuple('DictVal', ['log_prob', 'backoff_weight'])
         with codecs.open(lm_file, 'r', encoding='utf-8') as infile:
             for line in infile:
                 line = line.strip()
@@ -36,10 +42,10 @@ class ARPAConverter:
                     elif marker == 'uni':
                         if line != '\\2-grams:':
                             try:  # catch invalid backoffs (</s>, <unk>)
-                                prob, unigram, backoff = line.split()
+                                log_prob, unigram, backoff = line.split()
                                 try:
-                                    self._base_unigrams[self._word2idx[unigram]] = 10 ** float(backoff)
-                                    self._avg_unigram_backoff += 10 ** float(backoff)
+                                    self._base_unigrams[unigram] = dict_val(float(log_prob), float(backoff))
+                                    self._avg_unigram_backoff += float(backoff)
                                     unigram_cnt += 1
                                 except KeyError:
                                     pass
@@ -52,9 +58,9 @@ class ARPAConverter:
                             try:  # more catching
                                 prob, history, word, backoff = line.split()
                                 try:
-                                    bigram = (self._word2idx[history], self._word2idx[word])
-                                    self._base_bigrams[bigram] = 10 ** float(backoff)
-                                    self._avg_bigram_backoff += 10 ** float(backoff)
+                                    bigram = (history, word)
+                                    self._base_bigrams[bigram] = dict_val(float(log_prob), float(backoff))
+                                    self._avg_bigram_backoff += float(backoff)
                                     bigram_cnt += 1
                                 except KeyError:
                                     pass
@@ -68,155 +74,109 @@ class ARPAConverter:
         self._avg_unigram_backoff /= unigram_cnt
         self._avg_bigram_backoff /= bigram_cnt
 
-    def convert_to_ngram(self, label_probabilities):
-        for sent in label_probabilities:
-            for i, label_prob in enumerate(sent):
-                word_idx = label_prob[0]
-                prob = label_prob[1]
+    def _update_rnn_ngram_prob_batch(self, batch_data, batch_output):
+        for n in range(2, self._rnn_ngram_context + 1):
+            for sent_id, sent in enumerate(batch_data):
+                for curr_word_pos, curr_word_idx in enumerate(sent):
+                    if curr_word_idx == PAD_ID or curr_word_idx == EOS_ID:
+                        break
+                    else:
+                        history = batch_data[sent_id][curr_word_pos - n + 2:curr_word_pos + 1]
+                        history = history.cpu().tolist()
+                        if not history:
+                            continue
+                        history = [self._idx2word[word_idx] for word_idx in history]
 
-                self._unigrams[word_idx] = [self._unigrams[word_idx][0] + prob, self._unigrams[word_idx][1] + 1]
-                if i - 1 >= 0:
-                    prev_word_idx = sent[i-1][0]
-                    prev_word_prob = sent[i-1][1]
-                    self._bigrams[(prev_word_idx, word_idx)] = [self._bigrams[(prev_word_idx, word_idx)][0] +
-                                                                (prev_word_prob * prob),
-                                                                self._bigrams[(prev_word_idx, word_idx)][1] + 1]
-                    self._bigrams_list[prev_word_idx].add(word_idx)
-                if i - 2 >= 0:
-                    prev_word_idx = sent[i - 1][0]
-                    prev_word_prob = sent[i - 1][1]
-                    prev_prev_word_idx = sent[i - 2][0]
-                    prev_prev_word_prob = sent[i - 2][1]
+                        output_probs = batch_output[sent_id][curr_word_pos]
+                        for pred_word_idx, pred_word_log_prob in enumerate(output_probs):
+                            if pred_word_idx == PAD_ID or pred_word_idx == BOS_ID:
+                                continue
+                            pred_word = self._idx2word[pred_word_idx]
+                            self._rnn_ngram_counts[n][tuple(history + [pred_word])][0] += pred_word_log_prob.item()
+                            self._rnn_ngram_counts[n][tuple(history + [pred_word])][1] += 1
+                            self._rnn_history[tuple(history)].add(pred_word)
 
-                    trigram = (prev_prev_word_idx, prev_word_idx, word_idx)
-                    trigram_prob = prev_prev_word_prob * prev_word_prob * prob
+    def _get_label_probabilities(self, data_iter):
+        self._model.eval()
+        with torch.no_grad():
+            for batch in tqdm(data_iter):
+                batch_data, batch_targets, batch_pad_lengths = batch[0], batch[1], batch[2]
+                batch_output = self._model(batch_data, batch_pad_lengths)
 
-                    self._trigrams[trigram] = [self._trigrams[trigram][0] + trigram_prob,
-                                               self._trigrams[trigram][1] + 1]
-                    self._trigrams_list[(prev_prev_word_idx, prev_word_idx)].add(word_idx)
+                self._update_rnn_ngram_prob_batch(batch_data, batch_output)
+                del batch_data
+                del batch_targets
+                del batch_pad_lengths
+                del batch_output
 
-        ### unigrams
-        # average
-        unigram_prob_sum = 0
-        for unigram in self._unigrams:
-            val = self._unigrams[unigram][0] / self._unigrams[unigram][1]
-            self._unigrams[unigram][0] = val
-            unigram_prob_sum += val
-        # norm
-        for unigram in self._unigrams:
-            self._unigrams[unigram][0] /= unigram_prob_sum
-
-        ### bigrams
-        # average
-        for bigram in self._bigrams:
-            self._bigrams[bigram][0] = self._bigrams[bigram][0] / self._bigrams[bigram][1]
-        # norm
-        for history in self._bigrams_list:
-            if len(self._bigrams_list[history]) == 1:
-                try:
-                    self._bigrams[(history, self._bigrams_list[history].pop())][0] = self._base_unigrams[history]
-                except KeyError:
-                    self._bigrams[(history, self._bigrams_list[history].pop())][0] = self._avg_unigram_backoff
-            else:
-                bigram_prob_sum = 0
-                for trans in self._bigrams_list[history]:
-                    bigram_prob_sum += self._bigrams[(history, trans)][0]
-                for trans in self._bigrams_list[history]:
-                    try:
-                        self._bigrams[(history, trans)][0] /= (bigram_prob_sum / self._base_unigrams[history])
-                    except KeyError:
-                        self._bigrams[(history, trans)][0] /= (bigram_prob_sum / self._avg_unigram_backoff)
-
-        ### trigrams
-        # average
-        for trigram in self._trigrams:
-            self._trigrams[trigram][0] = self._trigrams[trigram][0] / self._trigrams[trigram][1]
-        # norm
-        for history in self._trigrams_list:
-            if len(self._trigrams_list[history]) == 1:
-                trigram = (history[0], history[1], self._trigrams_list[history].pop())
-                try:
-                    self._trigrams[trigram][0] = self._base_bigrams[(history[0], history[1])]
-                except KeyError:
-                    self._trigrams[trigram][0] = self._avg_bigram_backoff
-            else:
-                trigram_prob_sum = 0
-                for trans in self._trigrams_list[history]:
-                    trigram_prob_sum += self._trigrams[(history[0], history[1], trans)][0]
-                for trans in self._trigrams_list[history]:
-                    try:
-                        self._trigrams[(history[0], history[1], trans)][0] /= (trigram_prob_sum /
-                                                                               self._base_bigrams[(history[0],
-                                                                                                   history[1])])
-                    except KeyError:
-                        self._trigrams[(history[0], history[1], trans)][0] /= (trigram_prob_sum /
-                                                                               self._avg_bigram_backoff)
+        # Average and Normalization
+        for n in self._rnn_ngrams:
+            prob_sum = 0
+            for n_gram in self._rnn_ngram_counts[n]:
+                self._rnn_ngram_counts[n][n_gram][0] /= self._rnn_ngrams[n][n_gram][1]
+                prob_sum += self._rnn_ngram_counts[n][n_gram][0]
+            for n_gram in self._rnn_ngram_counts[n]:
+                self._rnn_ngrams[n][n_gram][0] /= prob_sum
 
     def write_arpa_format(self, file_path):
         model_file = codecs.open(file_path, "w+", encoding="utf8")
 
         print("\\data\\", file=model_file)
-        print("ngram 1={0}".format(len(self._unigrams)), file=model_file)
-        print("ngram 2={0}".format(len(self._bigrams)), file=model_file)
-        print("ngram 3={0}".format(len(self._trigrams)), file=model_file)
+        print("ngram 1={0}".format(len(self._base_unigrams)), file=model_file)
+        print("ngram 2={0}".format(len(self._rnn_ngrams[2])), file=model_file)
+        print("ngram 3={0}".format(len(self._rnn_ngrams[3])), file=model_file)
 
         print("\n\\1-grams:", file=model_file)
-        for unigram in sorted(self._unigrams.keys()):
-            if unigram == 0:
-                pass
-            if unigram == 1:
-                print("{0} {1}".format(log(self._unigrams[unigram][0], 10),
-                                       self._idx2word[unigram]),
+        for unigram in self._base_unigrams:
+            if unigram == '<s>' or unigram == '<\s>':
+                print("{0} {1}".format(self._base_unigrams[unigram].log_prob,
+                                       unigram),
                       file=model_file)
             else:
                 try:  # try/catch for log(0)
-                    print("{0} {1} {2}".format(log(self._unigrams[unigram][0], 10),
-                                               self._idx2word[unigram],
-                                               log(self._base_unigrams[unigram], 10)), file=model_file)
+                    print("{0} {1} {2}".format(self._base_unigrams[unigram].log_prob,
+                                               unigram,
+                                               self._base_unigrams[unigram].backoff_weight, file=model_file))
                 except ValueError:
                     print("{0} {1} {2}".format(-99,
-                                               self._idx2word[unigram],
-                                               log(self._base_unigrams[unigram], 10)),
+                                               unigram,
+                                               self._base_unigrams[unigram].backoff_weight),
                           file=model_file)  # ARPA standard substitution for log(0) is -99 according to documentation
-                except KeyError:  # catch for out-of-model
-                    print("{0} {1} {2}".format(log(self._unigrams[unigram][0], 10),
-                                               self._idx2word[unigram],
-                                               log(self._avg_unigram_backoff, 10)),
-                          file=model_file)
 
         print("\n\\2-grams:", file=model_file)
-        for bigram in sorted(self._bigrams.keys()):
+        for bigram in self._rnn_ngrams[2]:
             try:
-                print("{0} {1} {2} {3}".format(log(self._bigrams[bigram][0], 10),
-                                               self._idx2word[bigram[0]],
-                                               self._idx2word[bigram[1]],
-                                               log(self._base_bigrams[(bigram[0], bigram[1])], 10)),
+                print("{0} {1} {2} {3}".format(self._rnn_ngrams[2][bigram],
+                                               bigram[0],
+                                               bigram[1],
+                                               self._base_bigrams[bigram]),
                       file=model_file)
             except ValueError:
                 print("{0} {1} {2}".format(-99,
-                                           self._idx2word[bigram[0]],
-                                           self._idx2word[bigram[1]],
-                                           log(self._base_bigrams[(bigram[0], bigram[1])], 10)),
+                                           bigram[0],
+                                           bigram[1],
+                                           self._base_bigrams[bigram].backoff_weight),
                       file=model_file)
             except KeyError:
-                print("{0} {1} {2} {3}".format(log(self._bigrams[bigram][0], 10),
-                                               self._idx2word[bigram[0]],
-                                               self._idx2word[bigram[1]],
-                                               log(self._avg_bigram_backoff, 10)),
+                print("{0} {1} {2}".format(self._rnn_ngrams[2][bigram],
+                                           bigram[0],
+                                           bigram[1],
+                                           self._avg_bigram_backoff),
                       file=model_file)
 
         print("\n\\3-grams:", file=model_file)
-        for trigram in sorted(self._trigrams.keys()):
+        for trigram in self._rnn_ngrams[3]:
             try:
-                print("{0} {1} {2} {3}".format(log(self._trigrams[trigram][0], 10),
-                                               self._idx2word[trigram[0]],
-                                               self._idx2word[trigram[1]],
-                                               self._idx2word[trigram[2]]), file=model_file)
+                print("{0} {1} {2} {3}".format(self._rnn_ngrams[3][trigram][0],
+                                               trigram[0],
+                                               trigram[1],
+                                               trigram[2]),
+                      file=model_file)
             except ValueError:
                 print("{0} {1} {2} {3}".format(-99,
-                                               self._idx2word[trigram[0]],
-                                               self._idx2word[trigram[1]],
-                                               self._idx2word[trigram[2]]),
+                                               trigram[0],
+                                               trigram[1],
+                                               trigram[2]),
                       file=model_file)
 
         print("\n\\end\\", file=model_file)
