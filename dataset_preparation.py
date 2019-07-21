@@ -182,7 +182,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--source_monolingual_file', help='Source monolingual text')
     parser.add_argument('--output_dir', help='Directory path to write output to.')
-    parser.add_argument('--cluster', action='store_true', default=True, help='Run Brown Clustering')
+    parser.add_argument('--cluster', action='store_true', default=False, help='Run Brown Clustering')
     parser.add_argument('--clustering_home_path', default='brown-cluster-master',
                         help='Path to Brown Clustering Directory')
     parser.add_argument('--num_clusters', type=int, default=300, help='Number of clusters when running Brown Clustering')

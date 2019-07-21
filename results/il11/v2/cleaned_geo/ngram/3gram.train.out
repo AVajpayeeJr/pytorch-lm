@@ -1,0 +1,2 @@
+file datasets/il11/v2/cleaned_geo/train.txt: 79647 sentences, 1279708 words, 70605 OOVs
+0 zeroprobs, logprob= -2557362 ppl= 96.466 ppl1= 130.3439

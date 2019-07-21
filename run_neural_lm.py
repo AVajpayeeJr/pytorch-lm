@@ -34,7 +34,7 @@ def main():
         logging.basicConfig(format='%(levelname)s:%(funcName)s:%(lineno)s:\t%(message)s', level=logging.DEBUG)
 
     data_reader = DatasetReader()
-    data_iters = data_reader.get_dataset(data_dir=args.language, max_seq_len=config['data']['max_sentence_len'],
+    data_iters = data_reader.get_dataset(data_dir=args.input_base_dir, max_seq_len=config['data']['max_sentence_len'],
                                          batch_size=config['training']['batch_size'], device=DEVICE)
 
     train_iter, val_iter, test_iter = data_iters[0], data_iters[1], data_iters[2]
