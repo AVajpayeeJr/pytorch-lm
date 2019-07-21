@@ -11,6 +11,12 @@ from tqdm import tqdm
 logger = logging.getLogger(__name__)
 
 
+def sort_by_lengths(data, targets, pad_lengths):
+    sorted_pad_lengths, sorted_index = pad_lengths.sort(descending=True)
+    data = data[sorted_index, :]
+    targets = targets[sorted_index, :]
+    return data, targets, sorted_pad_lengths
+
 class Trainer:
     def __init__(self, args, config, model, train_iter, val_iter, test_iter):
         self.args = args
@@ -42,13 +48,6 @@ class Trainer:
         else:
             raise KeyError('Optimizer {} not implemented.'.format(self.config['optimizer']['name']))
 
-    @staticmethod
-    def _sort_by_lengths(data, targets, pad_lengths):
-        sorted_pad_lengths, sorted_index = pad_lengths.sort(descending=True)
-        data = data[sorted_index, :]
-        targets = targets[sorted_index, :]
-        return data, targets, sorted_pad_lengths
-
     def _train_epoch(self, epoch):
         self._model.train()
         total_loss = 0.
@@ -62,7 +61,7 @@ class Trainer:
             iteration_step += 1
 
             data, targets, pad_lengths = batch[0], batch[1], batch[2]
-            data, targets, pad_lengths = self._sort_by_lengths(data, targets, pad_lengths)
+            data, targets, pad_lengths = sort_by_lengths(data, targets, pad_lengths)
 
             self._model.zero_grad()
             output = self._model(data, pad_lengths)
@@ -102,7 +101,7 @@ class Trainer:
         with torch.no_grad():
             for _, batch in enumerate(tqdm(data_iterator)):
                 data, targets, pad_lengths = batch[0], batch[1], batch[2]
-                data, targets, pad_lengths = self._sort_by_lengths(data, targets, pad_lengths)
+                data, targets, pad_lengths = sort_by_lengths(data, targets, pad_lengths)
                 output = self._model(data, pad_lengths)
                 output_flat = output.view(-1, self.args.vocab_size)
                 total_loss += torch.nn.NLLLoss(ignore_index=0, reduction='sum')(output_flat,

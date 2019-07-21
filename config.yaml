@@ -24,3 +24,10 @@ training:
     epochs: 10
     log_interval: 1
     batch_size: 32
+arpa_conversion:
+    rnn_ngram_context: 2
+    ngram_pruning:
+        2: 2000000
+        3: 400000
+    history_pruning:
+        2: 50000
