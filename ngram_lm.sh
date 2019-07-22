@@ -1,5 +1,5 @@
 #!/bin/sh
-# $1=inputDir, $2=outputBaseDir, $3=numClasses $4=mixing_lambda
+# $1=inputDir, $2=outputBaseDir
 
 
 # Trigram Language Model with KN Smoothing
