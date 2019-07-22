@@ -1,7 +1,7 @@
 data:
     word_min_count: 2
     vocab_size: 100000
-    num_train_sentences: 100000
+    num_train_sentences: 200000
     num_valid_sentences: 5000
     num_test_sentences: 5000
     min_sentence_len: 3
@@ -21,7 +21,7 @@ training:
         name: adam
         lr: 0.001
     grad_clip: 5.0
-    epochs: 10
+    epochs: 15
     log_interval: 1
     batch_size: 32
 arpa_conversion:

@@ -1,0 +1,2 @@
+file datasets/il12/cleaned_multi/test.txt: 4959 sentences, 77114 words, 2157 OOVs
+0 zeroprobs, logprob= -142052 ppl= 59.9124 ppl1= 78.5441

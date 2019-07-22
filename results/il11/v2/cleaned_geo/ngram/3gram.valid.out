@@ -1,2 +1,0 @@
-file datasets/il11/v2/cleaned_geo/valid.txt: 4994 sentences, 90322 words, 6252 OOVs
-0 zeroprobs, logprob= -230353.6 ppl= 385.8187 ppl1= 549.5685
