@@ -1,11 +1,11 @@
 data:
     word_min_count: 2
     vocab_size: 100000
-    num_train_sentences: 80000
+    num_train_sentences: 100000
     num_valid_sentences: 5000
     num_test_sentences: 5000
     min_sentence_len: 3
-    max_sentence_len: 100
+    max_sentence_len: 50
 model:
     embedding:
         type: word
