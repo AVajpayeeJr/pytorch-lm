@@ -1,0 +1,2 @@
+file datasets/tha/cross_domain-WL-NW/valid.txt: 6000 sentences, 85250 words, 1667 OOVs
+0 zeroprobs, logprob= -186339.1 ppl= 120.2465 ppl1= 169.5861

@@ -1,0 +1,2 @@
+file datasets/tha/cleaned_subset/test.txt: 6000 sentences, 135602 words, 1156 OOVs
+0 zeroprobs, logprob= -282543.9 ppl= 102.7452 ppl1= 126.3402

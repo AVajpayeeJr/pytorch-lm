@@ -1,0 +1,2 @@
+file datasets/tha/cleaned_subset/train.txt: 108000 sentences, 2431025 words, 15098 OOVs
+0 zeroprobs, logprob= -4363942 ppl= 53.58322 ppl1= 64.02096

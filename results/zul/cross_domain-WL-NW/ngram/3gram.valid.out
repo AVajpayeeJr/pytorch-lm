@@ -1,0 +1,2 @@
+file datasets/zul/cross_domain-WL-NW/valid.txt: 510 sentences, 7114 words, 2611 OOVs
+0 zeroprobs, logprob= -12664.39 ppl= 335.9768 ppl1= 649.2824

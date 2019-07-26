@@ -1,0 +1,2 @@
+file datasets/hun/cleaned_subset/valid.txt: 6000 sentences, 88294 words, 14325 OOVs
+0 zeroprobs, logprob= -198077.6 ppl= 299.8676 ppl1= 476.2619

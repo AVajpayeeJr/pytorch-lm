@@ -1,2 +1,7 @@
 .idea/
 AWS/
+*.DS_STORE
+*.pyc
+monolingual_texts/
+datasets/
+convert_to_arpa.py

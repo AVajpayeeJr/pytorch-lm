@@ -1,0 +1,2 @@
+file datasets/tgl/cleaned_subset/train.txt: 108000 sentences, 2150251 words, 82928 OOVs
+0 zeroprobs, logprob= -3966571 ppl= 66.59477 ppl1= 82.92765

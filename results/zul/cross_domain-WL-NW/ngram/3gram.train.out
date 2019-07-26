@@ -1,0 +1,2 @@
+file datasets/zul/cross_domain-WL-NW/train.txt: 9181 sentences, 125709 words, 37483 OOVs
+0 zeroprobs, logprob= -186162.4 ppl= 81.50432 ppl1= 128.8435

@@ -1,0 +1,2 @@
+file datasets/tgl/cleaned_subset/valid.txt: 6000 sentences, 119753 words, 5832 OOVs
+0 zeroprobs, logprob= -259258.7 ppl= 145.1818 ppl1= 188.7018

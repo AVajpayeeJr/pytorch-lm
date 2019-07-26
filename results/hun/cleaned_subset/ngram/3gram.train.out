@@ -1,0 +1,2 @@
+file datasets/hun/cleaned_subset/train.txt: 108000 sentences, 1550880 words, 213184 OOVs
+0 zeroprobs, logprob= -2885041 ppl= 98.99352 ppl1= 143.4577

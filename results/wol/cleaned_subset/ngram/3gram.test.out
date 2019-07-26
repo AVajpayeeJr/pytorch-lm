@@ -1,0 +1,2 @@
+file datasets/wol/cleaned_subset/test.txt: 1895 sentences, 25765 words, 1609 OOVs
+0 zeroprobs, logprob= -53319.54 ppl= 111.362 ppl1= 161.1759

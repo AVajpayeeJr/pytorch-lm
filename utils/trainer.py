@@ -11,12 +11,6 @@ from tqdm import tqdm
 logger = logging.getLogger(__name__)
 
 
-def sort_by_lengths(data, targets, pad_lengths):
-    sorted_pad_lengths, sorted_index = pad_lengths.sort(descending=True)
-    data = data[sorted_index, :]
-    targets = targets[sorted_index, :]
-    return data, targets, sorted_pad_lengths
-
 class Trainer:
     def __init__(self, args, config, model, train_iter, val_iter, test_iter):
         self.args = args
@@ -27,6 +21,16 @@ class Trainer:
         self.test_iter = test_iter
         self.writer = SummaryWriter(self.args.save_dir + '/runs/' + self.args.file_name)
         self.optimizer = self._get_optimizer()
+
+    def sort_by_lengths(self, data, targets, pad_lengths):
+        sorted_pad_lengths, sorted_index = pad_lengths.sort(descending=True)
+        if self.args.model_type == 'word':
+            data = data[sorted_index, :]
+        elif self.args.model_type == 'char' or self.args.model_type == 'word_char':
+            data = (data[0][sorted_index, :], data[1][sorted_index, :, :])
+
+        targets = targets[sorted_index, :]
+        return data, targets, sorted_pad_lengths
 
     @property
     def model(self):
@@ -60,12 +64,25 @@ class Trainer:
 
             iteration_step += 1
 
-            data, targets, pad_lengths = batch[0], batch[1], batch[2]
-            data, targets, pad_lengths = sort_by_lengths(data, targets, pad_lengths)
+            targets, pad_lengths = batch[-2], batch[-1]
+            word_data = None
+            char_data = None
+            data = None
+            if self.args.model_type == 'word':
+                word_data = batch[0]
+                data = word_data
+            elif self.args.model_type == 'char' or self.args.model_type == 'word_char':
+                word_data, char_data = batch[0], batch[1]
+                data = (word_data, char_data)
+            data, targets, pad_lengths = self.sort_by_lengths(data, targets, pad_lengths)
 
             self._model.zero_grad()
-            output = self._model(data, pad_lengths)
-            loss = torch.nn.NLLLoss(ignore_index=0, reduction='sum')(output.view(-1, self.args.vocab_size),
+            output = None
+            if self.args.model_type == 'word':
+                output = self._model(pad_lengths, data)
+            elif self.args.model_type == 'char' or self.args.model_type == 'word_char':
+                output = self._model(pad_lengths, data[0], data[1])
+            loss = torch.nn.NLLLoss(ignore_index=0, reduction='sum')(output.view(-1, self.args.word_vocab_size),
                                                                      targets.view(-1))
             loss.backward()
 
@@ -73,7 +90,10 @@ class Trainer:
             self.optimizer.step()
 
             total_loss += loss.item()
-            total_num_examples += len(data.nonzero())
+            if self.args.model_type == 'word':
+                total_num_examples += len(data.nonzero())
+            elif self.args.model_type == 'char' or self.args.model_type == 'word_char':
+                total_num_examples += len(data[0].nonzero())
 
             if iteration_step % self.config['log_interval'] == 0 and i > 0:
                 cur_loss = total_loss / total_num_examples
@@ -100,13 +120,30 @@ class Trainer:
 
         with torch.no_grad():
             for _, batch in enumerate(tqdm(data_iterator)):
-                data, targets, pad_lengths = batch[0], batch[1], batch[2]
-                data, targets, pad_lengths = sort_by_lengths(data, targets, pad_lengths)
-                output = self._model(data, pad_lengths)
-                output_flat = output.view(-1, self.args.vocab_size)
+                targets, pad_lengths = batch[-2], batch[-1]
+                word_data = None
+                char_data = None
+                data = None
+                if self.args.model_type == 'word':
+                    word_data = batch[0]
+                    data = word_data
+                elif self.args.model_type == 'char' or self.args.model_type == 'word_char':
+                    word_data, char_data = batch[0], batch[1]
+                    data = (word_data, char_data)
+
+                data, targets, pad_lengths = self.sort_by_lengths(data, targets, pad_lengths)
+                output = None
+                if self.args.model_type == 'word':
+                    output = self._model(pad_lengths, data)
+                elif self.args.model_type == 'char' or self.args.model_type == 'word_char':
+                    output = self._model(pad_lengths, data[0], data[1])
+                output_flat = output.view(-1, self.args.word_vocab_size)
                 total_loss += torch.nn.NLLLoss(ignore_index=0, reduction='sum')(output_flat,
                                                                                 targets.view(-1)).item()
-                word_count += len(data.nonzero())
+                if self.args.model_type == 'word':
+                    word_count += len(data.nonzero())
+                elif self.args.model_type == 'char' or self.args.model_type == 'word_char':
+                    word_count += len(data[0].nonzero())
 
         self._model.train()
         return total_loss / word_count

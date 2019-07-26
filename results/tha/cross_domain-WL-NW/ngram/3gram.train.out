@@ -1,0 +1,2 @@
+file datasets/tha/cross_domain-WL-NW/train.txt: 108000 sentences, 1515576 words, 23026 OOVs
+0 zeroprobs, logprob= -2811351 ppl= 57.08088 ppl1= 76.48729

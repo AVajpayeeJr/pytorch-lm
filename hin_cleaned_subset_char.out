@@ -1,0 +1,11 @@
+nohup: ignoring input
+Traceback (most recent call last):
+  File "run_neural_lm.py", line 60, in <module>
+    main()
+  File "run_neural_lm.py", line 37, in main
+    batch_size=config['training']['batch_size'], device=DEVICE)
+  File "/home/ec2-user/pytorch-lm/utils/data_reader.py", line 139, in get_dataset
+    train_data = self._lm_data_producer(train_data, max_seq_len, max_word_len)
+  File "/home/ec2-user/pytorch-lm/utils/data_reader.py", line 126, in _lm_data_producer
+    char_padded_data = np.array(char_padded_data, dtype=dtype)
+KeyboardInterrupt

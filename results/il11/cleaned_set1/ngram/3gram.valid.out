@@ -1,2 +1,0 @@
-file datasets/il11/cleaned_set1/valid.txt: 4961 sentences, 80906 words, 6678 OOVs
-0 zeroprobs, logprob= -210701.4 ppl= 457.8688 ppl1= 689.5577

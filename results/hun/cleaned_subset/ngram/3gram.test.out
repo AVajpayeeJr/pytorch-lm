@@ -1,0 +1,2 @@
+file datasets/hun/cleaned_subset/test.txt: 6000 sentences, 86389 words, 13967 OOVs
+0 zeroprobs, logprob= -193370.8 ppl= 292.2621 ppl1= 467.7958

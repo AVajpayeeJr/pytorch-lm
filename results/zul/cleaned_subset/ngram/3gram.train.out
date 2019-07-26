@@ -1,0 +1,2 @@
+file datasets/zul/cleaned_subset/train.txt: 108000 sentences, 1383184 words, 212848 OOVs
+0 zeroprobs, logprob= -2538311 ppl= 96.7468 ppl1= 147.5277

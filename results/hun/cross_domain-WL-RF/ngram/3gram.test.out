@@ -1,0 +1,2 @@
+file datasets/hun/cross_domain-WL-RF/test.txt: 17 sentences, 332 words, 175 OOVs
+0 zeroprobs, logprob= -298.8561 ppl= 52.18715 ppl1= 80.08327

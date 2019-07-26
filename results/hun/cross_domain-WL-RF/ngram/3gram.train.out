@@ -1,0 +1,2 @@
+file datasets/hun/cross_domain-WL-RF/train.txt: 108000 sentences, 1715920 words, 214832 OOVs
+0 zeroprobs, logprob= -3247764 ppl= 104.3249 ppl1= 145.7494

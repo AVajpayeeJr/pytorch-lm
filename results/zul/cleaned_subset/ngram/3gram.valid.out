@@ -1,0 +1,2 @@
+file datasets/zul/cleaned_subset/valid.txt: 6000 sentences, 76849 words, 14101 OOVs
+0 zeroprobs, logprob= -184730.3 ppl= 486.4799 ppl1= 879.0298

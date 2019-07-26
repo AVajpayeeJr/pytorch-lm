@@ -1,0 +1,2 @@
+file datasets/il12/cleaned_subset/test.txt: 6000 sentences, 101718 words, 5811 OOVs
+0 zeroprobs, logprob= -191826.8 ppl= 76.27299 ppl1= 100.0306

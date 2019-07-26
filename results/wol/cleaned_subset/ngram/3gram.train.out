@@ -1,0 +1,2 @@
+file datasets/wol/cleaned_subset/train.txt: 34085 sentences, 463063 words, 23296 OOVs
+0 zeroprobs, logprob= -777062.9 ppl= 43.64005 ppl1= 58.47736

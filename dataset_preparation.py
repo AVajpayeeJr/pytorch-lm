@@ -3,6 +3,7 @@ import codecs
 from collections import defaultdict
 import logging
 import os
+import random
 import shutil
 import subprocess
 import yaml
@@ -10,14 +11,35 @@ import yaml
 __author__ = 'avijitv@uw.edu'
 
 
-def split_text(data_file_path, config, handle_oov=True):
-    """ Reads source text and splits into train / test / val sets.
+def read_sentences(data_file_path, config):
+    sentences = []
+    with codecs.open(data_file_path, 'r', encoding='utf-8') as infile:
+        for line in infile:
+            try:
+                line = line.strip()
+                if line:
+                    tokens = line.split()
+                    if len(tokens) < config['data']['min_sentence_len'] or len(tokens) > config['data']['max_sentence_len']:
+                        pass
+                    else:
+                        sentences.append(tokens)
+            except UnicodeDecodeError:
+                pass
+    logging.debug('Number of original sentences: {}'.format(len(sentences)))
+    if len(sentences) > config['data']['max_sentences']:
+        sentences = random.sample(sentences, config['data']['max_sentences'])
+    random.shuffle(sentences)
+    return sentences
+
+
+def split_text(sentences, config, handle_oov=True):
+    """ Splits sentences into train / test / val sets.
 
     Reads a given source file containing comma separated sentences in each line and splits into train / test / val lists
     of size described in the config dict. Only considers sentences of more than threshold tokens.
 
     Args:
-        data_file_path (str): Source file path containing monolingual text (one space separated sentence per line)
+        sentences (list)
         config (dict): Configuration dict for dataset construction hyper-parameters.
         handle_oov (bool): If True, restrict vocab based on frequency words and desired vocab size. Replace OOV in
             train / test / val with <unk>
@@ -29,34 +51,21 @@ def split_text(data_file_path, config, handle_oov=True):
         val (:obj:list of :obj:str)
     """
     vocab = {}
-    train, test, val = [], [], []
-    train_sent_cnt = int(config['num_train_sentences'])
-    test_sent_cnt = int(config['num_test_sentences'])
-    val_sent_cnt = int(config['num_valid_sentences'])
-    curr_sent_cnt = 0
+    train_sent_cnt = int(config['data']['train_ratio'] * len(sentences))
+    test_sent_cnt = int(config['data']['val_ratio'] * len(sentences))
+    val_sent_cnt = int(config['data']['test_ratio'] * len(sentences))
 
-    with codecs.open(data_file_path, 'r', encoding='utf-8') as infile:
-        for line in infile:
-            line = line.strip()
-            if line:
-                curr_sent_cnt += 1
-                tokens = line.split()
-                if len(tokens) < config['min_sentence_len'] or len(tokens) > config['max_sentence_len']:
-                    continue
-                if curr_sent_cnt <=  val_sent_cnt:
-                    val.append(tokens)
-                elif curr_sent_cnt <= val_sent_cnt + test_sent_cnt:
-                    test.append(tokens)
-                elif curr_sent_cnt <= train_sent_cnt + val_sent_cnt + test_sent_cnt:
-                    train.append(tokens)
-                    if len(tokens) >= config['min_sentence_len']:
-                        for t in tokens:
-                            vocab[t] = vocab.get(t, 0) + 1
-                elif curr_sent_cnt > train_sent_cnt + val_sent_cnt + test_sent_cnt:
-                    break
+    train = sentences[:train_sent_cnt]
+    val = sentences[train_sent_cnt: train_sent_cnt + val_sent_cnt]
+    test = sentences[train_sent_cnt + val_sent_cnt: ]
+
     logging.debug('Number {} sentences: {}'.format('Train', len(train)))
     logging.debug('Number {} sentences: {}'.format('Test', len(val)))
     logging.debug('Number {} sentences: {}'.format('Valid', len(test)))
+
+    for sent in train:
+        for w in sent:
+            vocab[w] = vocab.get(w, 0) + 1
 
     if handle_oov:
         vocab, train, test, val = _handle_oov(config=config, orig_vocab=vocab, train=train, test=test, val=val)
@@ -71,10 +80,12 @@ def _handle_oov(config, orig_vocab, train, test, val):
     top n most frequent tokens. In-place replaces OOV tokens in train / test / val with <unk>.
     """
     logging.debug('Original Train vocab size: {}'.format(len(orig_vocab)))
-    restricted_vocab = {k:v for k,v in orig_vocab.items() if v > config['word_min_count']}
+    restricted_vocab = {k:v for k,v in orig_vocab.items() if v > config['data']['word_min_count']}
     logging.debug('Restricted Train vocab size: {}'.format(len(restricted_vocab)))
 
-    final_vocab_items = sorted(restricted_vocab.items(), key=lambda x: x[1], reverse=True)[:config['vocab_size']]
+    final_vocab_items = sorted(restricted_vocab.items(),
+                               key=lambda x: x[1],
+                               reverse=True)[:config['data']['max_vocab_size']]
     final_vocab = dict(final_vocab_items)
     logging.debug('Final vocab size: {}'.format(len(final_vocab)))
 
@@ -196,8 +207,9 @@ def main():
     if args.debug:
         logging.basicConfig(format='%(levelname)s:%(funcName)s:%(lineno)s:\t%(message)s', level=logging.DEBUG)
 
-    vocab, train_sentences, test_sentences, val_sentences = split_text(args.source_monolingual_file,
-                                                                       config['data'])
+    sentences = read_sentences(args.source_monolingual_file,
+                               config)
+    vocab, train_sentences, test_sentences, val_sentences = split_text(sentences, config)
 
     write_to_file(output_dir=args.output_dir,
                   final_vocab=vocab,

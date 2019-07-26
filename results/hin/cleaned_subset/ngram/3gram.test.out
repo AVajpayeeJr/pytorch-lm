@@ -1,0 +1,2 @@
+file datasets/hin/cleaned_subset/test.txt: 6000 sentences, 106580 words, 4675 OOVs
+0 zeroprobs, logprob= -255525.5 ppl= 233.3781 ppl1= 321.7271

@@ -1,0 +1,2 @@
+file datasets/tgl/cross_domain-WL-NW/train.txt: 20199 sentences, 270148 words, 27127 OOVs
+0 zeroprobs, logprob= -447395 ppl= 50.08409 ppl1= 69.33819

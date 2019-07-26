@@ -1,2 +1,0 @@
-file datasets/il11/cleaned_set1/train.txt: 69361 sentences, 1135591 words, 65370 OOVs
-0 zeroprobs, logprob= -2265623 ppl= 97.301 ppl1= 130.9083

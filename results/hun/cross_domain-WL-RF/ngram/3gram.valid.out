@@ -1,0 +1,2 @@
+file datasets/hun/cross_domain-WL-RF/valid.txt: 6000 sentences, 95733 words, 14288 OOVs
+0 zeroprobs, logprob= -223688.8 ppl= 361.4525 ppl1= 557.8292

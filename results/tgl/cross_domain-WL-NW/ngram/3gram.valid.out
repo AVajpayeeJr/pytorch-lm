@@ -1,0 +1,2 @@
+file datasets/tgl/cross_domain-WL-NW/valid.txt: 1122 sentences, 15162 words, 1947 OOVs
+0 zeroprobs, logprob= -29320.9 ppl= 110.9483 ppl1= 165.485
